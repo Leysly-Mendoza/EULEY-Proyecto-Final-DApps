@@ -6,7 +6,7 @@ const API_BASE_URL = "http://localhost:3000/api";
 
 const OWNER_ADDRESS = "0xb17c90BD1BC4fdb4c90b7371CDcEb4D8B1bC68ac".toLowerCase();
 
-const WALLET_ADDRESS = "0xe1F30Da6B24CE7C6e19e317970E1780f852efB76"; 
+const WALLET_ADDRESS = "0x309B62215B110303Bb7C1c52a2b49BeBC6B318dC"; 
 
 function App() {
   const [account, setAccount] = useState(null);
