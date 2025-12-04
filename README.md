@@ -2,6 +2,9 @@
 
 Aplicación Web3 completa para comprar y vender gatitos virtuales como NFTs en la red Ethereum Sepolia.
 
+## Integrantes: 
+- Eunice Ramona Dávila Lugo - 21100187
+- Leysly Yarismet Mendoza Flores - 21100248
 ---
 
 ## Tabla de Contenidos
@@ -185,7 +188,7 @@ PRIVATE_KEY="tu_private_key"
 
 4. **Iniciar el backend**
 ```bash
-node indexP.js
+node index.js
 ```
 El servidor correrá en `http://localhost:3000`
 
@@ -521,7 +524,7 @@ PROYECTO FINAL - DAPPS/
 ├── frontend/                # Aplicación React
 │   └── src/
 │       └── App.jsx
-├── indexP.js               # Servidor Express principal
+├── index.js               # Servidor Express principal
 ├── .env                    # Variables de entorno
 ├── hardhat.config.js       # Configuración Hardhat
 └── package.json
@@ -637,7 +640,7 @@ MIT License - Proyecto académico para la materia de DApps
 
 Para comenzar:
 1. Configura tu `.env`
-2. Inicia el backend: `node indexP.js`
+2. Inicia el backend: `node index.js`
 3. Inicia el frontend: `cd frontend && npm run dev`
 4. Importa la colección de Postman
 5. Empieza a probar las rutas
