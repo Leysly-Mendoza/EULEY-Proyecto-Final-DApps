@@ -41,6 +41,37 @@ function App() {
     }
   };
 
+  const handleDisableProduct = async (gatitoId) => {
+    // 1. Verificar el rol
+    if (!isOwner) return alert("Solo el dueño puede deshabilitar productos.");
+
+    try {
+        setLoading(true);
+        
+        // 2. Conexión a MetaMask para obtener el firmante (signer)
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        const signer = provider.getSigner();
+        const WalletABI = await import('./artifacts/GatitosPaymentMultisig.json');
+        
+        // 3. Crear instancia del contrato con el signer del cuidador
+        const walletContract = new ethers.Contract(WALLET_ADDRESS, WalletABI.abi, signer);
+        
+        console.log(`Enviando transacción para deshabilitar gatito ${gatitoId}`);
+
+        // 4. Llamar a la función del contrato
+        const tx = await walletContract.deshabilitarGatito(gatitoId);
+        await tx.wait();
+
+        alert("Gatito deshabilitado exitosamente.");
+        fetchProducts(); // Actualizar el catálogo
+    } catch (error) {
+        console.error(error);
+        alert("Error al deshabilitar: " + (error.data?.message || error.message));
+    } finally {
+        setLoading(false);
+    }
+};
+
   const checkIfWalletIsConnected = async () => {
     if (window.ethereum) {
       const accounts = await window.ethereum.request({ method: 'eth_accounts' });
@@ -281,24 +312,50 @@ function App() {
             <h3 style={{ margin: '5px 0' }}>{p.name}</h3>
             <p style={{ fontSize: '1.2em', fontWeight: 'bold', color: '#646cff', margin: '5px 0' }}>{p.price} ETH</p>
             
-            {/* LÓGICA DE BOTONES */}
+           {/* LÓGICA DE BOTONES */}
             {p.active ? (
+                // 1. EL GATITO ESTÁ DISPONIBLE
                 isOwner ? (
-                    <button disabled style={{ marginTop: '10px', padding: '10px', width: '100%', background: '#333', color: 'gold', border: '1px solid gold', borderRadius: '5px', cursor: 'not-allowed' }}>
-                        Tu producto (En Venta)
-                    </button>
+                    // 1a. ERES EL DUEÑO: MUESTRA AMBOS BOTONES (Deshabilitar y Tu Producto)
+                    <>
+                        {/* Botón 1: DESHABILITAR VENTA (Llama a la función que usa MetaMask) */}
+                        <button 
+                            onClick={() => handleDisableProduct(p.id)} 
+                            disabled={loading} 
+                            style={{ 
+                                marginTop: '10px', 
+                                padding: '10px', 
+                                width: '100%', 
+                                background: '#D32F2F', // Color rojo para acción de administrador
+                                color: 'white', 
+                                border: 'none', 
+                                borderRadius: '5px', 
+                                cursor: (loading) ? 'not-allowed' : 'pointer', 
+                                fontWeight: 'bold' 
+                            }}
+                        >
+                            {loading ? "Procesando Transacción..." : "Deshabilitar Venta (Admin)"}
+                        </button>
+                        
+                        {/* Botón 2: Estado de tu producto */}
+                        <button disabled style={{ marginTop: '10px', padding: '10px', width: '100%', background: '#333', color: 'gold', border: '1px solid gold', borderRadius: '5px', cursor: 'not-allowed' }}>
+                            Tu producto (En Venta)
+                        </button>
+                    </>
                 ) : (
+                    // 1b. NO ERES EL DUEÑO: MUESTRA EL BOTÓN COMPRAR
                     <button 
                         onClick={() => buyProduct(p)} 
                         disabled={loading} 
                         style={{ marginTop: '10px', padding: '10px', width: '100%', background: '#646cff', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' }}
                     >
-                        {loading ? "Procesando" : "Comprar Ahora"}
+                        {loading ? "Procesando" : `Comprar Ahora (${p.price} ETH)`}
                     </button>
                 )
             ) : (
+                // 2. EL GATITO NO ESTÁ DISPONIBLE (VENDIDO/Deshabilitado)
                 <button disabled style={{ marginTop: '10px', padding: '10px', width: '100%', background: '#333', color: 'red', border: '1px solid red', borderRadius: '5px', cursor: 'not-allowed' }}>
-                    VENDIDO
+                    VENDIDO / DESHABILITADO
                 </button>
             )}
 
