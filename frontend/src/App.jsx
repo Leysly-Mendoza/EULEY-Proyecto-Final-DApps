@@ -6,7 +6,7 @@ const API_BASE_URL = "http://localhost:3000/api";
 
 const OWNER_ADDRESS = "0xb17c90BD1BC4fdb4c90b7371CDcEb4D8B1bC68ac".toLowerCase();
 
-const WALLET_ADDRESS = "0xE808a0d4705efC53fa8E3345f7cB72391f161DFA"; 
+const WALLET_ADDRESS = "0xe4855d48AB4B4626D4393172DE1aBF718323322a"; 
 
 function App() {
   const [account, setAccount] = useState(null);
@@ -49,17 +49,46 @@ function App() {
     try {
         const WalletABI = await import('./artifacts/GatitosPaymentMultisig.json');
         const provider = new ethers.providers.Web3Provider(window.ethereum);
-        const signerOrProvider = provider.getSigner(account); 
-        const contract = new ethers.Contract(WALLET_ADDRESS, WalletABI.abi, signerOrProvider);
-        const idsComprados = await contract.obtenerMisGatitosComprados();
-        const ids = idsComprados.map(id => id.toNumber()); 
-        const misGatitos = products.filter(p => ids.includes(parseInt(p.id)));
+        const signer = provider.getSigner();
+        const contract = new ethers.Contract(WALLET_ADDRESS, WalletABI.abi, signer);
 
-        setComprados(misGatitos);
-        
+        const esOwner = account.toLowerCase() === OWNER_ADDRESS;
+
+        if (esOwner) {
+            // DUEÑO: Mostrar todos los gatitos vendidos (disponible = false)
+            const todosGatitos = await contract.obtenerGatitos();
+            const vendidos = todosGatitos
+                .filter(g => !g.disponible)
+                .map(g => ({
+                    id: g.id.toNumber(),
+                    name: g.nombre,
+                    price: ethers.utils.formatEther(g.precio),
+                    image: g.imagen,
+                    criador: g.criador
+                }));
+            setComprados(vendidos);
+        } else {
+            // CLIENTE: Mostrar sus gatitos comprados
+            const idsComprados = await contract.obtenerMisGatitosComprados();
+            const ids = idsComprados.map(id => id.toNumber());
+
+            const misGatitos = [];
+            for (const id of ids) {
+                const gatito = await contract.gatitos(id);
+                misGatitos.push({
+                    id: gatito.id.toNumber(),
+                    name: gatito.nombre,
+                    price: ethers.utils.formatEther(gatito.precio),
+                    image: gatito.imagen,
+                    criador: gatito.criador
+                });
+            }
+            setComprados(misGatitos);
+        }
+
     } catch (error) {
-        console.error("Error al obtener gatitos comprados:", error);
-        alert("Error al cargar tus gatitos comprados");
+        console.error("Error al obtener gatitos:", error);
+        alert("Error al cargar los gatitos: " + error.message);
     }
   };
 
@@ -251,7 +280,7 @@ function App() {
                     fontWeight: 'bold',
                 }}
             >
-                Ver Gatitos Comprados ({comprados.length}) 
+                {isOwner ? `Ver Gatitos Vendidos (${comprados.length})` : `Ver Mis Gatitos (${comprados.length})`} 
             </button>
         )}
       </header>
@@ -374,7 +403,7 @@ function App() {
             border: '2px solid #007bff',
             position: 'relative' 
           }}>
-            <h2 style={{ color: '#007bff', marginTop: 0 }}>Mis Gatitos Comprados ({comprados.length})</h2>
+            <h2 style={{ color: '#007bff', marginTop: 0 }}>{isOwner ? `Gatitos Vendidos (${comprados.length})` : `Mis Gatitos Comprados (${comprados.length})`}</h2>
             <button 
               onClick={() => setMostrarComprados(false)} 
               style={{ 
@@ -394,7 +423,7 @@ function App() {
             </button>
 
             {comprados.length === 0 ? (
-              <p>Aún no has comprado ningún gatito</p>
+              <p>{isOwner ? "Aún no se ha vendido ningún gatito" : "Aún no has comprado ningún gatito"}</p>
             ) : (
               <div style={{ display: 'flex', gap: '15px', flexDirection: 'column' }}>
                 {comprados.map((g, index) => (
@@ -408,7 +437,7 @@ function App() {
                     <div>
                       <h4 style={{ margin: '0 0 5px 0', color: '#fff' }}>{g.name} (ID: {g.id})</h4>
                       <p style={{ margin: 0, color: '#aaa', fontSize: '14px' }}>Precio de Compra: <span style={{ fontWeight: 'bold', color: '#646cff' }}>{g.price} ETH</span></p>
-                      <p style={{ margin: 0, color: '#aaa', fontSize: '12px' }}>Vendedor: {g.criador.slice(0,6)}...{g.criador.slice(-4)}</p>
+                      <p style={{ margin: 0, color: '#aaa', fontSize: '12px' }}>{isOwner ? "Criador" : "Vendedor"}: {g.criador.slice(0,6)}...{g.criador.slice(-4)}</p>
                     </div>
                   </div>
                 ))}
