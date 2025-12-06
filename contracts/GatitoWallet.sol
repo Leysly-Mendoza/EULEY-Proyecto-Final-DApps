@@ -200,5 +200,9 @@ contract GatitosPaymentMultisig {
     Gatito storage g = gatitos[_gatitoId];
     require(g.disponible, "Ya esta deshabilitado");
     g.disponible = false;
-}
+    }
+
+    function obtenerMisGatitosComprados() external view returns (uint[] memory) {
+        return misGatitosComprados[msg.sender];
+    }
 }
