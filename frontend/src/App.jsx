@@ -18,6 +18,9 @@ function App() {
   const [selectedFile, setSelectedFile] = useState(null);
   const [uploading, setUploading] = useState(false);
 
+  const [comprados, setComprados] = useState([]); 
+  const [mostrarComprados, setMostrarComprados] = useState(false);
+
   useEffect(() => {
     fetchProducts();
     checkIfWalletIsConnected();
@@ -38,6 +41,25 @@ function App() {
       }
     } catch (error) {
       console.error("Error cargando productos:", error);
+    }
+  };
+
+  const fetchCompradosIds = async () => {
+    if (!account) return;
+    try {
+        const WalletABI = await import('./artifacts/GatitosPaymentMultisig.json');
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        const signerOrProvider = provider.getSigner(account); 
+        const contract = new ethers.Contract(WALLET_ADDRESS, WalletABI.abi, signerOrProvider);
+        const idsComprados = await contract.obtenerMisGatitosComprados();
+        const ids = idsComprados.map(id => id.toNumber()); 
+        const misGatitos = products.filter(p => ids.includes(parseInt(p.id)));
+
+        setComprados(misGatitos);
+        
+    } catch (error) {
+        console.error("Error al obtener gatitos comprados:", error);
+        alert("Error al cargar tus gatitos comprados");
     }
   };
 
@@ -209,6 +231,28 @@ function App() {
                     <span style={{ background: '#4CAF50', color: 'white', padding: '2px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold' }}> CLIENTE</span>
                 }
             </div>
+        )} 
+        {account && (
+            <button 
+                onClick={() => {
+                    setMostrarComprados(true);
+                    fetchCompradosIds();
+                }} 
+                disabled={loading} 
+                style={{ 
+                    marginTop: '20px',
+                    padding: '10px 20px', 
+                    fontSize: '16px', 
+                    cursor: 'pointer', 
+                    background: '#007bff', 
+                    border: 'none', 
+                    borderRadius: '5px', 
+                    color: 'white',
+                    fontWeight: 'bold',
+                }}
+            >
+                Ver Gatitos Comprados ({comprados.length}) 
+            </button>
         )}
       </header>
 
@@ -305,8 +349,77 @@ function App() {
           </div>
         ))}
       </div>
-    </div>
-  );
+      {/* --- Bloque de Gatitos Comprados (Modal) --- */}
+      {mostrarComprados && (
+        <div style={{ 
+          position: 'fixed', 
+          top: 0, 
+          left: 0, 
+          width: '100%', 
+          height: '100%', 
+          backgroundColor: 'rgba(0, 0, 0, 0.8)', 
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'center', 
+          zIndex: 1000 
+        }}>
+          <div style={{ 
+            backgroundColor: '#1a1a1a', 
+            padding: '30px', 
+            borderRadius: '10px', 
+            maxWidth: '90%', 
+            maxHeight: '80%', 
+            overflowY: 'auto',
+            width: '600px',
+            border: '2px solid #007bff',
+            position: 'relative' 
+          }}>
+            <h2 style={{ color: '#007bff', marginTop: 0 }}>Mis Gatitos Comprados ({comprados.length})</h2>
+            <button 
+              onClick={() => setMostrarComprados(false)} 
+              style={{ 
+                position: 'absolute', 
+                top: '15px', 
+                right: '15px', 
+                background: 'red', 
+                color: 'white', 
+                border: 'none', 
+                borderRadius: '5px', 
+                padding: '5px 10px', 
+                cursor: 'pointer',
+                fontWeight: 'bold'
+              }}
+            >
+              Cerrar X
+            </button>
+
+            {comprados.length === 0 ? (
+              <p>Aún no has comprado ningún gatito</p>
+            ) : (
+              <div style={{ display: 'flex', gap: '15px', flexDirection: 'column' }}>
+                {comprados.map((g, index) => (
+                  <div key={index} style={{ border: '1px solid #444', borderRadius: '8px', padding: '10px', display: 'flex', alignItems: 'center', gap: '15px', backgroundColor: '#2a2a2a' }}>
+                    <img 
+                      src={g.image.startsWith('http') ? g.image : `https://gateway.pinata.cloud/ipfs/${g.image}`} 
+                      alt={g.name} 
+                      style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '4px' }}
+                      onError={(e) => { e.target.onerror = null; e.target.src = "https://placekitten.com/80/80"; }} 
+                    />
+                    <div>
+                      <h4 style={{ margin: '0 0 5px 0', color: '#fff' }}>{g.name} (ID: {g.id})</h4>
+                      <p style={{ margin: 0, color: '#aaa', fontSize: '14px' }}>Precio de Compra: <span style={{ fontWeight: 'bold', color: '#646cff' }}>{g.price} ETH</span></p>
+                      <p style={{ margin: 0, color: '#aaa', fontSize: '12px' }}>Vendedor: {g.criador.slice(0,6)}...{g.criador.slice(-4)}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
+    
 
 export default App;
