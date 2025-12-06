@@ -225,6 +225,30 @@ function App() {
 
   const isOwner = account && account.toLowerCase() === OWNER_ADDRESS;
 
+  const disableProduct = async (product) => {
+    if (!account) return alert("Conecta tu wallet primero");
+    if (!isOwner) return alert("Solo el vendedor puede deshabilitar gatitos");
+
+    try {
+      setLoading(true);
+      const WalletABI = await import('./artifacts/GatitosPaymentMultisig.json');
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      const signer = provider.getSigner();
+      const contract = new ethers.Contract(WALLET_ADDRESS, WalletABI.abi, signer);
+
+      const tx = await contract.deshabilitarGatito(product.id);
+      await tx.wait();
+
+      alert("Gatito deshabilitado exitosamente");
+      fetchProducts();
+    } catch (error) {
+      console.error(error);
+      alert("Error al deshabilitar: " + (error.data?.message || error.message));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div style={{ minHeight: '100vh', padding: '20px', backgroundColor: '#1a1a1a', color: 'white', fontFamily: 'Arial, sans-serif' }}>
       
@@ -357,9 +381,18 @@ function App() {
             {/* LÓGICA DE BOTONES */}
             {p.active ? (
                 isOwner ? (
-                    <button disabled style={{ marginTop: '10px', padding: '10px', width: '100%', background: '#333', color: 'gold', border: '1px solid gold', borderRadius: '5px', cursor: 'not-allowed' }}>
-                        Tu producto (En Venta)
-                    </button>
+                    <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <button disabled style={{ padding: '10px', width: '100%', background: '#333', color: 'gold', border: '1px solid gold', borderRadius: '5px', cursor: 'not-allowed' }}>
+                          Tu producto (En Venta)
+                      </button>
+                      <button
+                          onClick={() => disableProduct(p)}
+                          disabled={loading}
+                          style={{ padding: '10px', width: '100%', background: loading ? '#666' : '#dc3545', color: 'white', border: 'none', borderRadius: '5px', cursor: loading ? 'not-allowed' : 'pointer', fontWeight: 'bold' }}
+                      >
+                          {loading ? "Procesando..." : "Deshabilitar"}
+                      </button>
+                    </div>
                 ) : (
                     <button 
                         onClick={() => buyProduct(p)} 
